@@ -31,10 +31,8 @@ const UsageStats = {
         { id: 'url-decode', row: 'codec', label: 'URL解码', order: 1, visible: true },
         { id: 'unicode-encode', row: 'codec', label: 'Unicode编码', order: 2, visible: true },
         { id: 'unicode-decode', row: 'codec', label: 'Unicode解码', order: 3, visible: true },
-        { id: 'gbk-encode', row: 'codec', label: 'GBK编码', order: 4, visible: true },
-        { id: 'gbk-decode', row: 'codec', label: 'GBK解码', order: 5, visible: true },
-        { id: 'base64-encode', row: 'codec', label: 'Base64编码', order: 6, visible: true },
-        { id: 'base64-decode', row: 'codec', label: 'Base64解码', order: 7, visible: true },
+        { id: 'base64-encode', row: 'codec', label: 'Base64编码', order: 4, visible: true },
+        { id: 'base64-decode', row: 'codec', label: 'Base64解码', order: 5, visible: true },
         
         // 时间戳行
         { id: 'ts-current', row: 'timestamp', label: '获取当前时间', order: 0, visible: true },

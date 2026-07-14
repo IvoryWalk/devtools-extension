@@ -1,6 +1,6 @@
 /**
  * 编解码工具模块
- * URL、Unicode、GBK、Base64 编解码
+ * URL、Unicode、Base64 编解码
  * 使用浏览器原生API，无需第三方库
  */
 const CodecTools = {
@@ -58,59 +58,6 @@ const CodecTools = {
         }
     },
 
-    // GBK编码（转为GBK字节的十六进制表示）
-    gbkEncode(input) {
-        try {
-            const encoder = new TextEncoder('gbk', { NONSTANDARD_allowLegacyEncoding: true });
-            const bytes = encoder.encode(input);
-            let hex = '';
-            for (let i = 0; i < bytes.length; i++) {
-                hex += '%' + bytes[i].toString(16).toUpperCase().padStart(2, '0');
-            }
-            return { success: true, result: hex };
-        } catch (e) {
-            // 降级方案：使用URI编码
-            try {
-                return { success: true, result: escape(input).replace(/%u/g, '%u').toUpperCase() };
-            } catch (e2) {
-                return { success: false, error: `GBK编码失败: ${e.message}` };
-            }
-        }
-    },
-
-    // GBK解码
-    gbkDecode(input) {
-        try {
-            // 处理百分号编码
-            let cleanInput = input;
-            if (input.includes('%')) {
-                const bytes = [];
-                const parts = input.split('%');
-                for (let i = 1; i < parts.length; i++) {
-                    if (parts[i].length >= 2) {
-                        const byte = parseInt(parts[i].substring(0, 2), 16);
-                        if (!isNaN(byte)) bytes.push(byte);
-                    }
-                }
-                if (bytes.length > 0) {
-                    const decoder = new TextDecoder('gbk');
-                    const uint8Array = new Uint8Array(bytes);
-                    return { success: true, result: decoder.decode(uint8Array) };
-                }
-            }
-            // 处理%uXXXX格式
-            if (input.includes('%u')) {
-                const result = input.replace(/%u([0-9a-fA-F]{4})/g, (match, hex) => {
-                    return String.fromCharCode(parseInt(hex, 16));
-                });
-                return { success: true, result };
-            }
-            return { success: true, result: input };
-        } catch (e) {
-            return { success: false, error: `GBK解码失败: ${e.message}` };
-        }
-    },
-
     // Base64编码（支持中文）
     base64Encode(input) {
         try {
@@ -153,9 +100,7 @@ const CodecTools = {
             { id: 'url-decode', text: 'URL解码', action: 'urlDecode' },
             { id: 'unicode-encode', text: 'Unicode编码', action: 'unicodeEncode' },
             { id: 'unicode-decode', text: 'Unicode解码', action: 'unicodeDecode' },
-            { id: 'gbk-encode', text: 'GBK编码', action: 'gbkEncode' },
-            { id: 'gbk-decode', text: 'GBK解码', action: 'gbkDecode' },
-            { id: 'base64-encode', text: 'Base64编码', action: 'base64Encode', primary: true },
+            { id: 'base64-encode', text: 'Base64编码', action: 'base64Encode' },
             { id: 'base64-decode', text: 'Base64解码', action: 'base64Decode' }
         ];
     }

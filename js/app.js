@@ -347,12 +347,6 @@ class DevToolBoxApp {
                 case 'unicode-decode':
                     result = CodecTools.unicodeDecode(input);
                     break;
-                case 'gbk-encode':
-                    result = CodecTools.gbkEncode(input);
-                    break;
-                case 'gbk-decode':
-                    result = CodecTools.gbkDecode(input);
-                    break;
                 case 'base64-encode':
                     result = CodecTools.base64Encode(input);
                     break;
