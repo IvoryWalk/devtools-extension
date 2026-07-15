@@ -26,7 +26,7 @@
         <!-- 主内容区：左右分栏 -->
         <main class="main-content full-page-main">
             <!-- 左栏：输入区 -->
-            <section class="panel input-panel">
+            <section class="panel input-panel" id="input-panel">
                 <div class="panel-header">
                     <span class="panel-title">📝 输入</span>
                     <div class="panel-actions">
@@ -38,12 +38,15 @@
                 </div>
                 <div class="code-area-wrapper">
                     <div class="line-numbers" id="input-line-numbers">1</div>
-                    <textarea id="input-area" class="code-area code-area-with-lines" placeholder="在此输入内容...&#10;&#10;支持JSON格式化、各类编解码、时间戳转换、Cron解析等功能&#10;点击上方按钮即可执行对应操作"></textarea>
+                    <textarea id="input-area" class="code-area code-area-with-lines" placeholder="在此输入内容...&#10;&#10;支持JSON格式化、各类编解码、时间戳转换、Cron解析、SQL美化等功能&#10;点击上方按钮即可执行对应操作"></textarea>
                 </div>
             </section>
 
+            <!-- 可拖拽分割线 -->
+            <div class="splitter" id="splitter" title="拖拽调整宽度"></div>
+
             <!-- 右栏：结果区 -->
-            <section class="panel output-panel">
+            <section class="panel output-panel" id="output-panel">
                 <div class="panel-header">
                     <span class="panel-title">✅ 结果</span>
                     <div class="panel-actions">
@@ -54,6 +57,7 @@
                     </div>
                 </div>
                 <div class="code-area-wrapper">
+                    <div class="line-numbers" id="output-line-numbers">1</div>
                     <pre id="output-area" class="code-area output-pre"><code id="output-code"></code></pre>
                 </div>
             </section>
@@ -101,6 +105,7 @@
     <script src="js/modules/timestamp.js"></script>
     <script src="js/modules/storage.js"></script>
     <script src="js/modules/cron-parser.js"></script>
+    <script src="js/modules/sql-tools.js"></script>
     <script src="js/modules/usage-stats.js"></script>
     <script src="js/app.js"></script>
 </body>

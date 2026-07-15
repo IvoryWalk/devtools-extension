@@ -1,9 +1,11 @@
 /**
- * 主应用入口 v1.3
- * - 动态渲染功能行和按钮（按配置和使用频率）
- * - 使用统计埋点
- * - 暂存重命名
- * - 导入导出支持
+ * 主应用入口 v2.2
+ * - 卡片式功能区布局（蓝色边框 + 左侧logo+描述 + 右侧2列按钮网格）
+ * - 可拖拽分割线（输入/结果区宽度调整）
+ * - 输出区行号显示
+ * - 高频按钮 Google 色边框指示（top-4）
+ * - 全局字号等比例缩放
+ * - 使用统计埋点 + 暂存重命名 + 导入导出
  */
 class DevToolBoxApp {
     constructor() {
@@ -14,7 +16,9 @@ class DevToolBoxApp {
     async init() {
         this.bindElements();
         this.initTheme();
+        this.initFontSize();
         this.bindGlobalEvents();
+        this.initSplitter();
         this.updateLineNumbers();
         this.updateCharCount();
         await this.renderFunctionArea();
@@ -28,11 +32,15 @@ class DevToolBoxApp {
         this.inputLineNumbers = document.getElementById('input-line-numbers');
         this.outputArea = document.getElementById('output-area');
         this.outputCode = document.getElementById('output-code');
+        this.outputLineNumbers = document.getElementById('output-line-numbers');
         this.status = document.getElementById('status');
         this.inputCount = document.getElementById('input-count');
         this.toast = document.getElementById('toast');
         this.functionArea = document.getElementById('function-area-container');
-        
+        this.inputPanel = document.getElementById('input-panel');
+        this.outputPanel = document.getElementById('output-panel');
+        this.splitter = document.getElementById('splitter');
+
         // 存储抽屉
         this.storageDrawer = document.getElementById('storage-drawer');
         this.drawerOverlay = document.getElementById('drawer-overlay');
@@ -45,47 +53,60 @@ class DevToolBoxApp {
         this.renameInput = document.getElementById('rename-input');
     }
 
-    // 动态渲染功能区
+    // 动态渲染功能区（卡片式布局 + top-4 高频标记）
     async renderFunctionArea() {
         const rows = await UsageStats.getRowsConfig();
-        let html = '';
+        const stats = await UsageStats.getStats();
 
-        // 功能行提示
-        const tips = {
-            cron: '提示：Linux:5位, Spring:6位, Quartz:6-7位，自动识别格式解析最近5次执行时间'
-        };
+        // 计算使用频率 top-4 按钮
+        const allButtons = UsageStats.defaultButtons;
+        const buttonCounts = allButtons.map(btn => ({
+            id: btn.id,
+            count: stats.buttons?.[btn.id]?.count || 0,
+            order: btn.order || 0
+        }));
+        buttonCounts.sort((a, b) => b.count - a.count || a.order - b.order);
+        const top4Ids = buttonCounts.slice(0, 4).map(b => b.id);
+        const top4Map = {};
+        top4Ids.forEach((id, i) => { top4Map[id] = `top-${i + 1}`; });
+
+        let html = '';
 
         for (const row of rows) {
             const defaultRow = UsageStats.defaultRows.find(r => r.id === row.id);
             if (!defaultRow) continue;
 
             const buttons = await UsageStats.getButtonsConfig(row.id);
-            
-            html += `<div class="func-row" data-row-id="${row.id}">`;
-            html += `<span class="func-label">${defaultRow.label}</span>`;
-            html += `<div class="func-btns">`;
+
+            // 根据按钮数量计算列数：所有块总高对齐到 3 行
+            // 公式：cols = ceil(btnCount / 3)，最少 1 列
+            //   1-3 个 → 1 列 3 行；4-6 个 → 2 列 3 行；7-9 个 → 3 列 3 行
+            // JSON 块（8 按钮 + 输入框跨整行）：强制 4 列 → 4×2 按钮 + 1 输入框 = 3 行总高
+            const btnCount = buttons.length;
+            const cols = row.id === 'json' ? 4 : Math.max(1, Math.ceil(btnCount / 3));
+
+            // 卡片式：左侧 logo+描述，右侧动态列数按钮网格
+            html += `<div class="func-block" data-row-id="${row.id}">`;
+            html += `<div class="func-block-info">`;
+            html += `<div class="func-block-logo">${defaultRow.logo || ''}</div>`;
+            html += `<div class="func-block-desc">${defaultRow.desc || defaultRow.label}</div>`;
+            html += `</div>`;
+            html += `<div class="func-block-btns" style="--btn-cols: ${cols}">`;
 
             for (const btn of buttons) {
                 const defaultBtn = UsageStats.defaultButtons.find(b => b.id === btn.id);
                 if (!defaultBtn) continue;
-                const isPrimary = defaultBtn.primary ? 'primary' : '';
+                const topClass = top4Map[btn.id] || '';
                 const title = defaultBtn.title ? `title="${defaultBtn.title}"` : '';
-                html += `<button class="func-btn ${isPrimary}" data-action="${btn.id}" ${title}>${defaultBtn.label}</button>`;
+                html += `<button class="func-btn ${topClass}" data-action="${btn.id}" ${title}>${defaultBtn.label}</button>`;
             }
 
-            // JSON行添加Key输入框
+            // JSON行添加Key输入框（跨整行占满）
             if (row.id === 'json') {
-                html += `<input type="text" id="json-keys-input" class="func-input" placeholder="多个key用英文逗号分隔,如: id,name,createTime">`;
+                html += `<input type="text" id="json-keys-input" class="func-input func-input-full" placeholder="key用逗号分隔">`;
             }
 
-            html += `</div>`;
-
-            // 提示文字
-            if (tips[row.id]) {
-                html += `<span class="func-tip">${tips[row.id]}</span>`;
-            }
-
-            html += `</div>`;
+            html += `</div></div>`;
         }
 
         this.functionArea.innerHTML = html;
@@ -117,6 +138,12 @@ class DevToolBoxApp {
         const nextIndex = (themes.indexOf(current) + 1) % themes.length;
         this.setTheme(themes[nextIndex]);
         this.showToast(`已切换到${themes[nextIndex] === 'dark' ? '深色' : themes[nextIndex] === 'light' ? '浅色' : '跟随系统'}主题`, 'success');
+    }
+
+    // 初始化全局字号
+    initFontSize() {
+        const scale = parseFloat(localStorage.getItem('devtoolbox_font_scale') || '1');
+        document.documentElement.style.setProperty('--font-scale', scale);
     }
 
     // 绑定全局事件
@@ -178,6 +205,7 @@ class DevToolBoxApp {
         });
         document.getElementById('btn-output-clear').addEventListener('click', () => {
             this.outputCode.textContent = '';
+            this.outputLineNumbers.textContent = '1';
             this.setStatus('已清空结果');
             this.showToast('已清空结果', 'success');
         });
@@ -190,6 +218,11 @@ class DevToolBoxApp {
 
         this.inputArea.addEventListener('scroll', () => {
             this.inputLineNumbers.scrollTop = this.inputArea.scrollTop;
+        });
+
+        // 输出区滚动同步行号
+        this.outputArea.addEventListener('scroll', () => {
+            this.outputLineNumbers.scrollTop = this.outputArea.scrollTop;
         });
 
         // Tab键插入空格
@@ -266,6 +299,9 @@ class DevToolBoxApp {
         document.querySelectorAll('.func-btn[data-action]').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const action = btn.dataset.action;
+                // 活跃状态指示
+                document.querySelectorAll('.func-btn.active').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
                 // 记录使用次数
                 await UsageStats.recordButtonClick(action);
                 // 执行功能
@@ -289,6 +325,76 @@ class DevToolBoxApp {
             lineNumbersHtml += i + '\n';
         }
         this.inputLineNumbers.textContent = lineNumbersHtml;
+    }
+
+    // 更新输出区行号
+    updateOutputLineNumbers() {
+        const text = this.outputCode.textContent || '';
+        const lines = text.split('\n');
+        const lineCount = lines.length;
+        let html = '';
+        for (let i = 1; i <= lineCount; i++) {
+            html += i + '\n';
+        }
+        this.outputLineNumbers.textContent = html || '1';
+    }
+
+    // 初始化可拖拽分割线
+    initSplitter() {
+        const splitter = this.splitter;
+        const inputPanel = this.inputPanel;
+        const outputPanel = this.outputPanel;
+        const mainContent = document.querySelector('.main-content');
+
+        // 恢复保存的比例
+        const savedRatio = localStorage.getItem('devtoolbox_split_ratio');
+        if (savedRatio) {
+            const ratio = parseFloat(savedRatio);
+            inputPanel.style.flex = `${ratio} 1 0`;
+            outputPanel.style.flex = `${1 - ratio} 1 0`;
+        }
+
+        let isDragging = false;
+
+        const startDrag = (e) => {
+            isDragging = true;
+            splitter.classList.add('dragging');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+        };
+
+        const onDrag = (e) => {
+            if (!isDragging) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const rect = mainContent.getBoundingClientRect();
+            const ratio = (clientX - rect.left) / rect.width;
+            const clamped = Math.max(0.15, Math.min(0.85, ratio));
+            inputPanel.style.flex = `${clamped} 1 0`;
+            outputPanel.style.flex = `${1 - clamped} 1 0`;
+        };
+
+        const endDrag = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            splitter.classList.remove('dragging');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            // 保存比例
+            const rect = mainContent.getBoundingClientRect();
+            const inputRect = inputPanel.getBoundingClientRect();
+            const ratio = inputRect.width / rect.width;
+            localStorage.setItem('devtoolbox_split_ratio', ratio);
+        };
+
+        splitter.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', onDrag);
+        document.addEventListener('mouseup', endDrag);
+
+        // 触摸支持
+        splitter.addEventListener('touchstart', startDrag, { passive: false });
+        document.addEventListener('touchmove', onDrag, { passive: false });
+        document.addEventListener('touchend', endDrag);
     }
 
     // 执行功能
@@ -376,6 +482,14 @@ class DevToolBoxApp {
                     result = CronParser.getNextTimes(input, 5, new Date(), 'quartz');
                     break;
 
+                // SQL处理
+                case 'sql-format':
+                    result = SqlTools.format(input);
+                    break;
+                case 'sql-clean':
+                    result = SqlTools.clean(input);
+                    break;
+
                 default:
                     this.showToast('未知功能', 'error');
                     return;
@@ -398,17 +512,27 @@ class DevToolBoxApp {
         // 时间戳和Cron结果显示HTML
         if ((action.startsWith('ts') || action === 'date-to-ts') && result.result) {
             this.outputCode.innerHTML = TimestampTools.formatResultHtml(result.result);
+            this.updateOutputLineNumbers();
             return;
         }
 
         if (action.startsWith('cron-') && result.result) {
             this.outputCode.innerHTML = CronParser.formatResultHtml(result.result);
+            this.updateOutputLineNumbers();
             return;
         }
 
         // JSON高亮
         if (action.startsWith('json-') && result.highlighted) {
             this.outputCode.innerHTML = result.highlighted;
+            this.updateOutputLineNumbers();
+            return;
+        }
+
+        // SQL高亮
+        if (action.startsWith('sql-') && result.highlighted) {
+            this.outputCode.innerHTML = result.highlighted;
+            this.updateOutputLineNumbers();
             return;
         }
 
@@ -417,11 +541,13 @@ class DevToolBoxApp {
             (typeof result.result === 'string' ? result.result : JSON.stringify(result.result, null, 2)) 
             : '';
         this.outputCode.textContent = text;
+        this.updateOutputLineNumbers();
     }
 
     // 显示错误
     showError(message) {
         this.outputCode.textContent = '❌ ' + message;
+        this.updateOutputLineNumbers();
         this.setStatus('执行失败 ✗', 'error');
         this.showToast(message, 'error');
     }

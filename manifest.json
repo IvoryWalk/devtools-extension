@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "DevToolBox - 开发者工具箱",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "开发者常用工具集合：JSON格式化、编解码、时间戳转换、Cron解析、数据暂存",
   "permissions": ["storage"],
   "background": {

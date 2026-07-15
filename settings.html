@@ -21,7 +21,7 @@
             border-bottom: 1px solid var(--border);
         }
         .settings-header h1 {
-            font-size: 24px;
+            font-size: var(--fs-5xl);
             color: var(--accent);
         }
         .back-btn {
@@ -45,7 +45,7 @@
             border: 1px solid var(--border);
         }
         .section-title {
-            font-size: 18px;
+            font-size: var(--fs-4xl);
             font-weight: 600;
             margin-bottom: 20px;
             color: var(--accent);
@@ -67,12 +67,12 @@
             flex: 1;
         }
         .setting-label h4 {
-            font-size: 14px;
+            font-size: var(--fs-xl);
             font-weight: 500;
             margin-bottom: 4px;
         }
         .setting-label p {
-            font-size: 12px;
+            font-size: var(--fs-md);
             color: var(--text-muted);
         }
         .setting-control {
@@ -86,7 +86,7 @@
             background: var(--bg-tertiary);
             color: var(--text-primary);
             border-radius: 6px;
-            font-size: 14px;
+            font-size: var(--fs-xl);
             width: 120px;
             text-align: center;
         }
@@ -161,7 +161,7 @@
         .drag-handle {
             cursor: grab;
             color: var(--text-muted);
-            font-size: 18px;
+            font-size: var(--fs-4xl);
             user-select: none;
         }
         .drag-handle:active {
@@ -169,10 +169,10 @@
         }
         .sort-item-name {
             flex: 1;
-            font-size: 14px;
+            font-size: var(--fs-xl);
         }
         .sort-item-count {
-            font-size: 12px;
+            font-size: var(--fs-md);
             color: var(--text-muted);
             margin-right: 12px;
         }
@@ -190,7 +190,7 @@
             color: var(--text-primary);
             border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: var(--fs-xl);
             transition: all 0.2s;
         }
         .btn:hover {
@@ -216,7 +216,7 @@
         /* 按钮排序按钮 */
         .btn-sort-buttons {
             padding: 4px 10px;
-            font-size: 12px;
+            font-size: var(--fs-md);
             border: 1px solid var(--border);
             background: var(--bg-primary);
             color: var(--text-muted);
@@ -264,7 +264,7 @@
             justify-content: space-between;
         }
         .modal-header h3 {
-            font-size: 16px;
+            font-size: var(--fs-3xl);
             font-weight: 600;
             margin: 0;
         }
@@ -274,7 +274,7 @@
             border: none;
             background: transparent;
             color: var(--text-muted);
-            font-size: 20px;
+            font-size: calc(20px * var(--font-scale));
             cursor: pointer;
             border-radius: 4px;
             display: flex;
@@ -291,7 +291,7 @@
             flex: 1;
         }
         .modal-tip {
-            font-size: 12px;
+            font-size: var(--fs-md);
             color: var(--text-muted);
             margin-bottom: 16px;
             padding: 10px;
@@ -308,7 +308,7 @@
             background: var(--bg-primary);
             border: 1px solid var(--border);
             border-radius: 8px;
-            font-size: 14px;
+            font-size: var(--fs-xl);
             margin-bottom: 8px;
             transition: all 0.2s;
         }
@@ -320,7 +320,7 @@
             font-weight: 500;
         }
         .modal .sub-item .item-count {
-            font-size: 12px;
+            font-size: var(--fs-md);
             color: var(--text-muted);
             margin-right: 8px;
         }
@@ -338,7 +338,7 @@
             color: var(--text-secondary);
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: var(--fs-xl);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -381,7 +381,7 @@
             background: var(--bg-tertiary);
             color: var(--text-primary);
             border-radius: 8px;
-            font-size: 13px;
+            font-size: var(--fs-lg);
             box-shadow: 0 4px 20px var(--shadow);
             opacity: 0;
             transition: all 0.3s ease;
@@ -401,7 +401,7 @@
             display: none;
         }
         .sort-tip {
-            font-size: 13px;
+            font-size: var(--fs-lg);
             color: var(--text-muted);
             margin-bottom: 16px;
             padding: 12px;
@@ -414,7 +414,56 @@
 <body>
     <div class="settings-header">
         <h1>⚙️ DevToolBox 设置</h1>
-        <a href="index.html" class="back-btn">← 返回工具箱</a>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="theme-toggle" class="back-btn" title="切换主题">🌓 主题</button>
+            <a href="index.html" class="back-btn">← 返回工具箱</a>
+        </div>
+    </div>
+
+    <!-- 全局字号设置 -->
+    <div class="settings-section">
+        <div class="section-title">🔤 全局字号设置</div>
+        <div class="setting-row">
+            <div class="setting-label">
+                <h4>字号等级</h4>
+                <p>调整全局字体大小，所有区域等比例缩放。默认「中等」</p>
+            </div>
+            <div class="setting-control" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                <div class="font-scale-options" id="font-scale-options">
+                    <div class="font-scale-option">
+                        <input type="radio" name="font-scale" id="fs-0" value="0.8">
+                        <label for="fs-0">极小</label>
+                    </div>
+                    <div class="font-scale-option">
+                        <input type="radio" name="font-scale" id="fs-1" value="0.9">
+                        <label for="fs-1">较小</label>
+                    </div>
+                    <div class="font-scale-option">
+                        <input type="radio" name="font-scale" id="fs-2" value="0.95">
+                        <label for="fs-2">略小</label>
+                    </div>
+                    <div class="font-scale-option">
+                        <input type="radio" name="font-scale" id="fs-3" value="1" checked>
+                        <label for="fs-3">中等</label>
+                    </div>
+                    <div class="font-scale-option">
+                        <input type="radio" name="font-scale" id="fs-4" value="1.1">
+                        <label for="fs-4">略大</label>
+                    </div>
+                    <div class="font-scale-option">
+                        <input type="radio" name="font-scale" id="fs-5" value="1.2">
+                        <label for="fs-5">较大</label>
+                    </div>
+                    <div class="font-scale-option">
+                        <input type="radio" name="font-scale" id="fs-6" value="1.35">
+                        <label for="fs-6">极大</label>
+                    </div>
+                </div>
+                <div class="font-scale-preview" id="font-scale-preview">
+                    预览：The quick brown fox 1234567890
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- 暂存设置 -->

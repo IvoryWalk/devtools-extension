@@ -16,10 +16,56 @@ class SettingsPage {
             setTimeout(() => this.init(), 100);
             return;
         }
+        this.initTheme();
+        this.initFontSize();
         await this.loadSettings();
         this.bindEvents();
         this.bindModalEvents();
         this.bindAutoSortToggle();
+    }
+
+    // 主题初始化（和主页面一致）
+    initTheme() {
+        const savedTheme = localStorage.getItem('devtoolbox_theme') || 'auto';
+        this.setTheme(savedTheme);
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            const themes = ['light', 'dark', 'auto'];
+            // 从 localStorage 读取用户保存的偏好（不是 data-theme 实际值，否则 auto 永远无法被选中）
+            const current = localStorage.getItem('devtoolbox_theme') || 'auto';
+            const nextIndex = (themes.indexOf(current) + 1) % themes.length;
+            this.setTheme(themes[nextIndex]);
+            localStorage.setItem('devtoolbox_theme', themes[nextIndex]);
+        });
+        // 监听系统主题变化
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                if ((localStorage.getItem('devtoolbox_theme') || 'auto') === 'auto') {
+                    this.setTheme('auto');
+                }
+            });
+        }
+    }
+
+    setTheme(theme) {
+        if (theme === 'auto') {
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+        } else {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+        // 更新按钮文字
+        const btn = document.getElementById('theme-toggle');
+        const themeText = { light: '☀️ 浅色', dark: '🌙 深色', auto: '🌓 跟随系统' };
+        btn.textContent = themeText[theme] || '🌓 主题';
+    }
+
+    // 初始化全局字号（加载已保存的设置）
+    initFontSize() {
+        const scale = parseFloat(localStorage.getItem('devtoolbox_font_scale') || '1');
+        document.documentElement.style.setProperty('--font-scale', scale);
+        // 选中对应的 radio
+        const radio = document.querySelector(`input[name="font-scale"][value="${scale}"]`);
+        if (radio) radio.checked = true;
     }
 
     async loadSettings() {
@@ -312,6 +358,14 @@ class SettingsPage {
             this.saveSettings();
         });
 
+        // 字号实时预览
+        document.querySelectorAll('input[name="font-scale"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const scale = parseFloat(e.target.value);
+                document.documentElement.style.setProperty('--font-scale', scale);
+            });
+        });
+
         document.getElementById('btn-export').addEventListener('click', () => {
             this.exportData();
         });
@@ -334,6 +388,10 @@ class SettingsPage {
         document.getElementById('btn-reset-all').addEventListener('click', async () => {
             if (confirm('确定要恢复所有默认设置吗？暂存数据会保留。')) {
                 await UsageStats.resetAll();
+                localStorage.removeItem('devtoolbox_font_scale');
+                document.documentElement.style.setProperty('--font-scale', '1');
+                const defaultRadio = document.getElementById('fs-3');
+                if (defaultRadio) defaultRadio.checked = true;
                 this.updatedRowButtons = null;
                 this.showToast('已恢复默认设置', 'success');
                 await this.loadSettings();
@@ -343,6 +401,12 @@ class SettingsPage {
 
     async saveSettings() {
         try {
+            // 保存全局字号
+            const selectedScale = document.querySelector('input[name="font-scale"]:checked');
+            if (selectedScale) {
+                localStorage.setItem('devtoolbox_font_scale', selectedScale.value);
+            }
+
             // 保存暂存设置
             const maxItems = parseInt(document.getElementById('max-items').value) || 100;
             const maxSizeMB = parseFloat(document.getElementById('max-size').value) || 1;

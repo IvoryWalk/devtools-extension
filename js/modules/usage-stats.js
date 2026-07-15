@@ -8,10 +8,11 @@ const UsageStats = {
 
     // 默认功能行定义
     defaultRows: [
-        { id: 'json', label: '📋 JSON：', order: 0, visible: true },
-        { id: 'codec', label: '🔐 编解码：', order: 1, visible: true },
-        { id: 'timestamp', label: '⏰ 时间戳：', order: 2, visible: true },
-        { id: 'cron', label: '⏱️ Cron：', order: 3, visible: true }
+        { id: 'json', label: 'JSON', logo: '📋', desc: 'JSON 处理', order: 0, visible: true },
+        { id: 'codec', label: '编解码', logo: '🔐', desc: '编解码工具', order: 1, visible: true },
+        { id: 'sql', label: 'SQL', logo: '🗄️', desc: 'SQL 工具', order: 2, visible: true },
+        { id: 'timestamp', label: '时间戳', logo: '⏰', desc: '时间戳转换', order: 3, visible: true },
+        { id: 'cron', label: 'Cron', logo: '⏱️', desc: 'Cron 解析', order: 4, visible: true }
     ],
 
     // 默认按钮定义
@@ -42,7 +43,11 @@ const UsageStats = {
         // Cron行
         { id: 'cron-linux', row: 'cron', label: 'Linux Cron', order: 0, visible: true },
         { id: 'cron-spring', row: 'cron', label: 'Spring Cron', order: 1, visible: true },
-        { id: 'cron-quartz', row: 'cron', label: 'Quartz Cron', order: 2, visible: true }
+        { id: 'cron-quartz', row: 'cron', label: 'Quartz Cron', order: 2, visible: true },
+
+        // SQL行
+        { id: 'sql-format', row: 'sql', label: '美化', order: 0, visible: true, primary: true },
+        { id: 'sql-clean', row: 'sql', label: '净化', order: 1, visible: true }
     ],
 
     // 获取统计数据
