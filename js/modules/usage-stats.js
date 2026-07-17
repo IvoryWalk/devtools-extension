@@ -8,11 +8,12 @@ const UsageStats = {
 
     // 默认功能行定义
     defaultRows: [
-        { id: 'json', label: 'JSON', logo: '📋', desc: 'JSON 处理', order: 0, visible: true },
-        { id: 'codec', label: '编解码', logo: '🔐', desc: '编解码工具', order: 1, visible: true },
-        { id: 'sql', label: 'SQL', logo: '🗄️', desc: 'SQL 工具', order: 2, visible: true },
-        { id: 'timestamp', label: '时间戳', logo: '⏰', desc: '时间戳转换', order: 3, visible: true },
-        { id: 'cron', label: 'Cron', logo: '⏱️', desc: 'Cron 解析', order: 4, visible: true }
+        { id: 'json', label: 'JSON', logo: '📋', desc: 'JSON', order: 0, visible: true },
+        { id: 'sql', label: 'SQL', logo: '🗄️', desc: 'SQL', order: 1, visible: true },
+        { id: 'timestamp', label: '时间戳', logo: '⏰', desc: '时间戳', order: 2, visible: true },
+        { id: 'diff', label: '文本比对', logo: '🔬', desc: '文本比对', order: 3, visible: true },
+        { id: 'codec', label: '编解码', logo: '🔐', desc: '编解码', order: 4, visible: true },
+        { id: 'cron', label: 'Cron', logo: '⏱️', desc: 'Cron', order: 5, visible: true }
     ],
 
     // 默认按钮定义
@@ -27,6 +28,20 @@ const UsageStats = {
         { id: 'json-extract-keys', row: 'json', label: '提取Key', order: 6, visible: true },
         { id: 'json-exclude-keys', row: 'json', label: '排除Key', order: 7, visible: true },
         
+        // SQL行
+        { id: 'sql-format', row: 'sql', label: '美化', order: 0, visible: true, primary: true },
+        { id: 'sql-clean', row: 'sql', label: '净化', order: 1, visible: true },
+
+        // 时间戳行
+        { id: 'ts-current', row: 'timestamp', label: '当前时间', order: 0, visible: true },
+        { id: 'ts-to-date', row: 'timestamp', label: '时间戳→日期', order: 1, visible: true },
+        { id: 'date-to-ts', row: 'timestamp', label: '日期→时间戳', order: 2, visible: true },
+
+        // 文本比对行
+        { id: 'diff-line', row: 'diff', label: '行', order: 0, visible: true, primary: true },
+        { id: 'diff-word', row: 'diff', label: '词', order: 1, visible: true },
+        { id: 'diff-char', row: 'diff', label: '字符', order: 2, visible: true },
+
         // 编解码行
         { id: 'url-encode', row: 'codec', label: 'URL编码', order: 0, visible: true },
         { id: 'url-decode', row: 'codec', label: 'URL解码', order: 1, visible: true },
@@ -35,19 +50,10 @@ const UsageStats = {
         { id: 'base64-encode', row: 'codec', label: 'Base64编码', order: 4, visible: true },
         { id: 'base64-decode', row: 'codec', label: 'Base64解码', order: 5, visible: true },
         
-        // 时间戳行
-        { id: 'ts-current', row: 'timestamp', label: '获取当前时间', order: 0, visible: true },
-        { id: 'ts-to-date', row: 'timestamp', label: '时间戳→日期', order: 1, visible: true },
-        { id: 'date-to-ts', row: 'timestamp', label: '日期→时间戳', order: 2, visible: true },
-        
         // Cron行
         { id: 'cron-linux', row: 'cron', label: 'Linux Cron', order: 0, visible: true },
         { id: 'cron-spring', row: 'cron', label: 'Spring Cron', order: 1, visible: true },
-        { id: 'cron-quartz', row: 'cron', label: 'Quartz Cron', order: 2, visible: true },
-
-        // SQL行
-        { id: 'sql-format', row: 'sql', label: '美化', order: 0, visible: true, primary: true },
-        { id: 'sql-clean', row: 'sql', label: '净化', order: 1, visible: true }
+        { id: 'cron-quartz', row: 'cron', label: 'Quartz Cron', order: 2, visible: true }
     ],
 
     // 获取统计数据

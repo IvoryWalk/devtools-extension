@@ -267,7 +267,7 @@ class SettingsPage {
     saveModalButtonConfig() {
         if (!this.currentEditingRow || !this.tempButtonsConfig) return;
         
-        // 从DOM读取开关状态
+        // 从DOM读取开关状态，并根据弹窗中的位置更新order
         const container = document.getElementById('modal-buttons-list');
         const buttonEls = container.querySelectorAll('.sub-item');
         
@@ -276,6 +276,7 @@ class SettingsPage {
             const btnConfig = this.tempButtonsConfig.find(b => b.id === btnId);
             if (btnConfig) {
                 btnConfig.visible = el.querySelector('.btn-visible').checked;
+                btnConfig.order = index;  // 关键：根据弹窗位置更新order
             }
         });
 

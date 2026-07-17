@@ -28,7 +28,7 @@
             <!-- 左栏：输入区 -->
             <section class="panel input-panel" id="input-panel">
                 <div class="panel-header">
-                    <span class="panel-title">📝 输入</span>
+                    <span class="panel-title diff-mode" id="input-panel-title">📝 原始文本</span>
                     <div class="panel-actions">
                         <span class="char-count" id="input-count">0 行, 0 字符</span>
                         <button class="panel-btn" id="btn-input-copy" title="复制输入内容">📋 复制</button>
@@ -38,7 +38,8 @@
                 </div>
                 <div class="code-area-wrapper">
                     <div class="line-numbers" id="input-line-numbers">1</div>
-                    <textarea id="input-area" class="code-area code-area-with-lines" placeholder="在此输入内容...&#10;&#10;支持JSON格式化、各类编解码、时间戳转换、Cron解析、SQL美化等功能&#10;点击上方按钮即可执行对应操作"></textarea>
+                    <textarea id="input-area" class="code-area code-area-with-lines" placeholder="在此输入原始文本..."></textarea>
+                    <pre id="input-diff-view" class="code-area output-pre" style="display:none"><code id="input-diff-code"></code></pre>
                 </div>
             </section>
 
@@ -48,17 +49,20 @@
             <!-- 右栏：结果区 -->
             <section class="panel output-panel" id="output-panel">
                 <div class="panel-header">
-                    <span class="panel-title">✅ 结果</span>
+                    <span class="panel-title diff-mode" id="output-panel-title">✏️ 修改文本</span>
                     <div class="panel-actions">
                         <span class="status" id="status">就绪</span>
+                        <button class="panel-btn diff-only" id="btn-diff-reset" title="重新编辑" style="display:none">🔄 重新编辑</button>
                         <button class="panel-btn" id="btn-output-copy" title="复制结果">📋 复制</button>
                         <button class="panel-btn" id="btn-output-save" title="保存结果到暂存">💾 保存</button>
                         <button class="panel-btn" id="btn-output-clear" title="清空结果">🗑️ 清空</button>
                     </div>
                 </div>
+                <div class="diff-stats-wrapper" id="diff-stats-wrapper" style="display:none"></div>
                 <div class="code-area-wrapper">
                     <div class="line-numbers" id="output-line-numbers">1</div>
-                    <pre id="output-area" class="code-area output-pre"><code id="output-code"></code></pre>
+                    <textarea id="output-textarea" class="code-area code-area-with-lines" placeholder="在此输入修改后的文本...&#10;&#10;输入完成后，点击上方「行比对」「词比对」「字符比对」按钮查看差异"></textarea>
+                    <pre id="output-area" class="code-area output-pre" style="display:none"><code id="output-code"></code></pre>
                 </div>
             </section>
         </main>
@@ -106,6 +110,7 @@
     <script src="js/modules/storage.js"></script>
     <script src="js/modules/cron-parser.js"></script>
     <script src="js/modules/sql-tools.js"></script>
+    <script src="js/modules/diff-tools.js"></script>
     <script src="js/modules/usage-stats.js"></script>
     <script src="js/app.js"></script>
 </body>

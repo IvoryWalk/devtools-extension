@@ -10,6 +10,11 @@
 class DevToolBoxApp {
     constructor() {
         this.currentRenameId = null;
+        // diff 模式状态: 'normal' | 'diff-edit' | 'diff-result'
+        this.diffMode = 'normal';
+        this.diffType = null;       // 'line' | 'word' | 'char'
+        this.diffOriginalText = '';
+        this.diffModifiedText = '';
         this.init();
     }
 
@@ -24,6 +29,8 @@ class DevToolBoxApp {
         await this.renderFunctionArea();
         this.bindFunctionEvents();
         await this.renderStorageList();
+        // 默认进入文本比对编辑模式
+        this.enterDiffEditMode('line', true);
     }
 
     // 绑定DOM元素
@@ -51,6 +58,15 @@ class DevToolBoxApp {
         // 重命名弹窗
         this.renameModal = document.getElementById('rename-modal');
         this.renameInput = document.getElementById('rename-input');
+
+        // diff 模式元素
+        this.outputTextarea = document.getElementById('output-textarea');
+        this.inputDiffView = document.getElementById('input-diff-view');
+        this.inputDiffCode = document.getElementById('input-diff-code');
+        this.inputPanelTitle = document.getElementById('input-panel-title');
+        this.outputPanelTitle = document.getElementById('output-panel-title');
+        this.diffStatsWrapper = document.getElementById('diff-stats-wrapper');
+        this.btnDiffReset = document.getElementById('btn-diff-reset');
     }
 
     // 动态渲染功能区（卡片式布局 + top-4 高频标记）
@@ -183,16 +199,25 @@ class DevToolBoxApp {
 
         // 输入区按钮
         document.getElementById('btn-input-copy').addEventListener('click', () => {
-            this.copyToClipboard(this.inputArea.value);
+            if (this.diffMode === 'diff-result') {
+                this.copyToClipboard(this.inputDiffCode.textContent);
+            } else {
+                this.copyToClipboard(this.inputArea.value);
+            }
         });
         document.getElementById('btn-input-save').addEventListener('click', () => {
-            this.saveContentToStorage(this.inputArea.value, '输入内容');
+            const content = this.diffMode === 'diff-result' ? this.inputDiffCode.textContent : this.inputArea.value;
+            this.saveContentToStorage(content, '原始文本');
         });
         document.getElementById('btn-input-clear').addEventListener('click', () => {
+            if (this.diffMode === 'diff-result') {
+                this.exitDiffToEdit();
+            }
             this.inputArea.value = '';
+            this.diffOriginalText = '';
             this.updateLineNumbers();
             this.updateCharCount();
-            this.showToast('已清空输入', 'success');
+            this.showToast('已清空原始文本', 'success');
         });
 
         // 输出区按钮
@@ -200,14 +225,32 @@ class DevToolBoxApp {
             this.copyResult();
         });
         document.getElementById('btn-output-save').addEventListener('click', () => {
-            const content = this.outputCode.textContent;
+            let content;
+            if (this.diffMode === 'diff-edit') {
+                content = this.outputTextarea.value;
+            } else {
+                content = this.outputCode.textContent;
+            }
             this.saveContentToStorage(content, '结果内容');
         });
         document.getElementById('btn-output-clear').addEventListener('click', () => {
-            this.outputCode.textContent = '';
-            this.outputLineNumbers.textContent = '1';
-            this.setStatus('已清空结果');
-            this.showToast('已清空结果', 'success');
+            if (this.diffMode === 'diff-edit') {
+                this.outputTextarea.value = '';
+                this.updateOutputLineNumbers();
+                this.updateDiffEditStatus();
+                this.showToast('已清空修改文本', 'success');
+            } else if (this.diffMode === 'diff-result') {
+                this.exitDiffToEdit();
+                this.outputTextarea.value = '';
+                this.updateOutputLineNumbers();
+                this.updateDiffEditStatus();
+                this.showToast('已清空修改文本', 'success');
+            } else {
+                this.outputCode.textContent = '';
+                this.outputLineNumbers.textContent = '1';
+                this.setStatus('已清空结果');
+                this.showToast('已清空结果', 'success');
+            }
         });
 
         // 输入框事件
@@ -220,9 +263,39 @@ class DevToolBoxApp {
             this.inputLineNumbers.scrollTop = this.inputArea.scrollTop;
         });
 
+        // diff 视图滚动同步行号
+        this.inputDiffView.addEventListener('scroll', () => {
+            this.inputLineNumbers.scrollTop = this.inputDiffView.scrollTop;
+        });
+
         // 输出区滚动同步行号
         this.outputArea.addEventListener('scroll', () => {
             this.outputLineNumbers.scrollTop = this.outputArea.scrollTop;
+        });
+
+        // diff 模式：输出区 textarea 事件
+        this.outputTextarea.addEventListener('input', () => {
+            this.updateOutputLineNumbers();
+            this.updateDiffEditStatus();
+        });
+        this.outputTextarea.addEventListener('scroll', () => {
+            this.outputLineNumbers.scrollTop = this.outputTextarea.scrollTop;
+        });
+        this.outputTextarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.outputTextarea.selectionStart;
+                const end = this.outputTextarea.selectionEnd;
+                this.outputTextarea.value = this.outputTextarea.value.substring(0, start) + '  ' + this.outputTextarea.value.substring(end);
+                this.outputTextarea.selectionStart = this.outputTextarea.selectionEnd = start + 2;
+                this.updateOutputLineNumbers();
+                this.updateDiffEditStatus();
+            }
+        });
+
+        // diff 重新编辑按钮
+        this.btnDiffReset.addEventListener('click', () => {
+            this.exitDiffToEdit();
         });
 
         // Tab键插入空格
@@ -329,7 +402,12 @@ class DevToolBoxApp {
 
     // 更新输出区行号
     updateOutputLineNumbers() {
-        const text = this.outputCode.textContent || '';
+        let text;
+        if (this.diffMode === 'diff-edit') {
+            text = this.outputTextarea.value;
+        } else {
+            text = this.outputCode.textContent || '';
+        }
         const lines = text.split('\n');
         const lineCount = lines.length;
         let html = '';
@@ -399,6 +477,17 @@ class DevToolBoxApp {
 
     // 执行功能
     async executeAction(action) {
+        // diff 模式路由
+        if (action.startsWith('diff-')) {
+            this.executeDiffCompare(action.replace('diff-', ''));
+            return;
+        }
+
+        // 非 diff 按钮：如果当前在 diff 模式，先退出
+        if (this.diffMode !== 'normal') {
+            this.exitDiffMode();
+        }
+
         const input = this.inputArea.value;
         
         try {
@@ -568,7 +657,11 @@ class DevToolBoxApp {
     // 复制结果
     copyResult() {
         let text = '';
-        if (this.outputCode.textContent) {
+        if (this.diffMode === 'diff-edit') {
+            text = this.outputTextarea.value;
+        } else if (this.diffMode === 'diff-result') {
+            text = this.outputCode.textContent;
+        } else if (this.outputCode.textContent) {
             text = this.outputCode.textContent;
         }
         if (!text || text === '就绪') {
@@ -698,6 +791,221 @@ class DevToolBoxApp {
         } else {
             this.showToast(result.error, 'error');
         }
+    }
+
+    // ========== 文本比对（Diff）模式 ==========
+
+    _diffTypeLabel(type) {
+        return type === 'line' ? '行比对' : type === 'word' ? '词比对' : '字符比对';
+    }
+
+    // diff 比对主入口
+    executeDiffCompare(type) {
+        if (this.diffMode === 'normal') {
+            // 首次点击：进入 diff 编辑模式
+            this.enterDiffEditMode(type);
+            this.showToast(`已进入文本比对模式，请输入文本后再次点击「${this._diffTypeLabel(type)}」`, 'success');
+            return;
+        }
+
+        if (this.diffMode === 'diff-edit') {
+            // 编辑态 → 计算并渲染 diff
+            this.diffOriginalText = this.inputArea.value;
+            this.diffModifiedText = this.outputTextarea.value;
+
+            if (!this.diffOriginalText.trim() && !this.diffModifiedText.trim()) {
+                this.showToast('请先输入要比对的文本', 'error');
+                return;
+            }
+
+            this.diffType = type;
+            this.renderDiffResult();
+            return;
+        }
+
+        if (this.diffMode === 'diff-result') {
+            // 结果态 → 切换比对类型重新计算
+            this.diffType = type;
+            this.renderDiffResult();
+            return;
+        }
+    }
+
+    // 进入 diff 编辑模式
+    enterDiffEditMode(type, isInitial = false) {
+        this.diffMode = 'diff-edit';
+        this.diffType = type;
+
+        // 保存当前输入区内容
+        this.diffOriginalText = this.inputArea.value;
+        this.diffModifiedText = '';
+
+        // 输出区：隐藏 pre/code，显示 textarea
+        this.outputTextarea.style.display = '';
+        this.outputArea.style.display = 'none';
+        this.outputTextarea.value = '';
+
+        // 输入区：保持 textarea 可见，隐藏 diff 视图
+        this.inputArea.style.display = '';
+        this.inputDiffView.style.display = 'none';
+
+        // 更新 placeholder
+        this.inputArea.placeholder = '在此输入原始文本...';
+        this.outputTextarea.placeholder = '在此输入修改后的文本...\n\n输入完成后，点击上方「行比对」「词比对」「字符比对」按钮查看差异';
+
+        // 更新 panel 标题
+        this.inputPanelTitle.textContent = '📝 原始文本';
+        this.inputPanelTitle.classList.add('diff-mode');
+        this.outputPanelTitle.textContent = '✏️ 修改文本';
+        this.outputPanelTitle.classList.add('diff-mode');
+
+        // 隐藏重新编辑按钮，隐藏统计栏
+        this.btnDiffReset.style.display = 'none';
+        this.diffStatsWrapper.style.display = 'none';
+        this.diffStatsWrapper.innerHTML = '';
+
+        // 更新行号和状态
+        this.updateLineNumbers();
+        this.updateCharCount();
+        this.updateOutputLineNumbers();
+        this.updateDiffEditStatus();
+
+        // 聚焦：初始加载聚焦输入区，按钮触发聚焦输出区
+        if (isInitial) {
+            this.inputArea.focus();
+        } else {
+            this.outputTextarea.focus();
+        }
+    }
+
+    // 渲染 diff 结果
+    renderDiffResult() {
+        const result = DiffTools.compare(
+            this.diffOriginalText,
+            this.diffModifiedText,
+            this.diffType
+        );
+
+        this.diffMode = 'diff-result';
+
+        // 输入区：隐藏 textarea，显示 diff 视图
+        this.inputArea.style.display = 'none';
+        this.inputDiffView.style.display = '';
+        this.inputDiffCode.innerHTML = result.leftHtml;
+
+        // 输出区：隐藏 textarea，显示 pre/code
+        this.outputTextarea.style.display = 'none';
+        this.outputArea.style.display = '';
+        this.outputCode.innerHTML = result.rightHtml;
+
+        // 显示统计栏
+        this.diffStatsWrapper.style.display = '';
+        this.diffStatsWrapper.innerHTML = DiffTools.renderStatsBar(result.stats, result.typeLabel);
+
+        // 显示重新编辑按钮
+        this.btnDiffReset.style.display = '';
+
+        // 更新 panel 标题
+        this.inputPanelTitle.textContent = `📝 原始文本（${result.typeLabel}）`;
+        this.outputPanelTitle.textContent = `✏️ 修改文本（${result.typeLabel}）`;
+
+        // 更新行号
+        this.updateOutputLineNumbers();
+        this.updateInputDiffLineNumbers();
+
+        // 更新状态
+        const total = result.stats.additions + result.stats.deletions + result.stats.equals;
+        this.setStatus(`${result.typeLabel}: +${result.stats.additions} -${result.stats.deletions} =${result.stats.equals}`, 'success');
+    }
+
+    // 重新编辑：从结果态回到编辑态
+    exitDiffToEdit() {
+        this.diffMode = 'diff-edit';
+
+        // 输入区：显示 textarea，隐藏 diff 视图
+        this.inputArea.style.display = '';
+        this.inputDiffView.style.display = 'none';
+        this.inputArea.value = this.diffOriginalText;
+
+        // 输出区：显示 textarea，隐藏 pre/code
+        this.outputTextarea.style.display = '';
+        this.outputArea.style.display = 'none';
+        this.outputTextarea.value = this.diffModifiedText;
+
+        // 隐藏重新编辑按钮，隐藏统计栏
+        this.btnDiffReset.style.display = 'none';
+        this.diffStatsWrapper.style.display = 'none';
+        this.diffStatsWrapper.innerHTML = '';
+
+        // 更新 panel 标题
+        this.inputPanelTitle.textContent = '📝 原始文本';
+        this.outputPanelTitle.textContent = '✏️ 修改文本';
+
+        // 更新行号和状态
+        this.updateLineNumbers();
+        this.updateCharCount();
+        this.updateOutputLineNumbers();
+        this.updateDiffEditStatus();
+
+        this.showToast('已切换到编辑模式', 'success');
+        this.inputArea.focus();
+    }
+
+    // 退出 diff 模式（点击非 diff 按钮时调用）
+    exitDiffMode() {
+        this.diffMode = 'normal';
+        this.diffType = null;
+
+        // 输入区：恢复 textarea，隐藏 diff 视图
+        this.inputArea.style.display = '';
+        this.inputDiffView.style.display = 'none';
+
+        // 输出区：恢复 pre/code，隐藏 textarea
+        this.outputTextarea.style.display = 'none';
+        this.outputArea.style.display = '';
+
+        // 恢复 placeholder
+        this.inputArea.placeholder = '在此输入内容...\n\n支持JSON格式化、各类编解码、时间戳转换、Cron解析、SQL美化等功能\n点击上方按钮即可执行对应操作';
+
+        // 恢复 panel 标题
+        this.inputPanelTitle.textContent = '📝 输入';
+        this.inputPanelTitle.classList.remove('diff-mode');
+        this.outputPanelTitle.textContent = '✅ 结果';
+        this.outputPanelTitle.classList.remove('diff-mode');
+
+        // 隐藏重新编辑按钮和统计栏
+        this.btnDiffReset.style.display = 'none';
+        this.diffStatsWrapper.style.display = 'none';
+        this.diffStatsWrapper.innerHTML = '';
+
+        // 清空 diff 视图内容
+        this.inputDiffCode.innerHTML = '';
+        this.outputCode.innerHTML = '';
+
+        // 更新行号
+        this.updateLineNumbers();
+        this.updateCharCount();
+        this.updateOutputLineNumbers();
+        this.setStatus('就绪');
+    }
+
+    // diff 编辑态状态更新
+    updateDiffEditStatus() {
+        const lines = this.outputTextarea.value.split('\n').length;
+        const chars = this.outputTextarea.value.length;
+        this.setStatus(`${lines} 行, ${chars} 字符`);
+    }
+
+    // 更新输入区 diff 视图行号
+    updateInputDiffLineNumbers() {
+        // diff 结果的行号基于 diff-line span 数量或文本行数
+        const text = this.inputDiffCode.textContent || '';
+        const lines = text.split('\n');
+        let html = '';
+        for (let i = 1; i <= lines.length; i++) {
+            html += i + '\n';
+        }
+        this.inputLineNumbers.textContent = html || '1';
     }
 }
 

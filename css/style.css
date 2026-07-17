@@ -206,8 +206,8 @@ body {
     align-items: center;
     justify-content: center;
     gap: 2px;
-    padding: 8px 12px;
-    min-width: 70px;
+    padding: 8px 8px;
+    min-width: 52px;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border);
 }
@@ -1077,4 +1077,132 @@ body {
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     font-family: 'SF Mono', Monaco, monospace;
+}
+
+/* --- 19. Diff 模式样式 --- */
+
+/* diff 统计栏 */
+.diff-stats-wrapper {
+    flex-shrink: 0;
+    padding: 0;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+}
+
+.diff-stats-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 4px var(--space-md);
+    font-size: var(--fs-sm);
+}
+
+.diff-stats-type {
+    font-weight: 600;
+    color: var(--accent);
+    padding: 2px 8px;
+    background: var(--accent-soft);
+    border-radius: var(--radius-sm);
+}
+
+.diff-stats-item {
+    color: var(--text-secondary);
+}
+
+.diff-stats-add { color: var(--success); }
+.diff-stats-del { color: var(--error); }
+.diff-stats-eq  { color: var(--text-muted); }
+.diff-stats-total { color: var(--text-secondary); margin-left: auto; }
+
+/* 行级 diff — 每行一个 block */
+.diff-line {
+    display: block;
+    padding: 0 4px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.diff-eq {
+    color: var(--text-secondary);
+}
+
+.diff-del {
+    background: rgba(243, 139, 168, 0.15);
+    color: var(--error);
+    border-left: 3px solid var(--error);
+    padding-left: 6px;
+}
+
+.diff-add {
+    background: rgba(166, 227, 161, 0.15);
+    color: var(--success);
+    border-left: 3px solid var(--success);
+    padding-left: 6px;
+}
+
+.diff-placeholder {
+    background: var(--bg-tertiary);
+    opacity: 0.3;
+    border-left: 3px solid var(--border);
+}
+
+[data-theme="light"] .diff-del {
+    background: rgba(255, 59, 48, 0.1);
+}
+
+[data-theme="light"] .diff-add {
+    background: rgba(52, 199, 89, 0.1);
+}
+
+/* 词/字符级 diff — 内联高亮 */
+.diff-eq-inline {
+    color: var(--text-secondary);
+}
+
+.diff-del-inline {
+    background: rgba(243, 139, 168, 0.25);
+    color: var(--error);
+    border-radius: 2px;
+    text-decoration: line-through;
+    text-decoration-color: rgba(243, 139, 168, 0.5);
+}
+
+.diff-add-inline {
+    background: rgba(166, 227, 161, 0.25);
+    color: var(--success);
+    border-radius: 2px;
+}
+
+[data-theme="light"] .diff-del-inline {
+    background: rgba(255, 59, 48, 0.15);
+}
+
+[data-theme="light"] .diff-add-inline {
+    background: rgba(52, 199, 89, 0.15);
+}
+
+.diff-empty {
+    color: var(--text-muted);
+    font-style: italic;
+    padding: var(--space-lg);
+    display: block;
+    text-align: center;
+}
+
+/* 重新编辑按钮 */
+#btn-diff-reset {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 500;
+}
+
+#btn-diff-reset:hover {
+    background: var(--accent);
+    color: white;
+}
+
+/* diff 模式下 panel 标题 */
+.panel-title.diff-mode {
+    color: var(--accent);
 }
