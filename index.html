@@ -53,6 +53,8 @@
                     <div class="panel-actions">
                         <span class="status" id="status">就绪</span>
                         <button class="panel-btn diff-only" id="btn-diff-reset" title="重新编辑" style="display:none">🔄 重新编辑</button>
+                        <button class="panel-btn json-tree-only" id="btn-json-expand" title="全部展开" style="display:none">▾ 展开</button>
+                        <button class="panel-btn json-tree-only" id="btn-json-collapse" title="全部折叠" style="display:none">▸ 折叠</button>
                         <button class="panel-btn" id="btn-output-copy" title="复制结果">📋 复制</button>
                         <button class="panel-btn" id="btn-output-save" title="保存结果到暂存">💾 保存</button>
                         <button class="panel-btn" id="btn-output-clear" title="清空结果">🗑️ 清空</button>
@@ -63,6 +65,7 @@
                     <div class="line-numbers" id="output-line-numbers">1</div>
                     <textarea id="output-textarea" class="code-area code-area-with-lines" placeholder="在此输入修改后的文本...&#10;&#10;输入完成后，点击上方「行比对」「词比对」「字符比对」按钮查看差异"></textarea>
                     <pre id="output-area" class="code-area output-pre" style="display:none"><code id="output-code"></code></pre>
+                    <div id="json-tree-root" class="json-tree" style="display:none"></div>
                 </div>
             </section>
         </main>

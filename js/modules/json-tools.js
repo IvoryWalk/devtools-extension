@@ -248,6 +248,89 @@ const JsonTools = {
         return obj;
     },
 
+    // HTML 转义
+    escapeHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    },
+
+    // 构建 JSON 树（用于结构统计视图）
+    // 节点结构: { key, depth, type, value, children[], keyCount, length, objCount }
+    buildTree(value, key = null, depth = 0) {
+        const node = {
+            key,
+            depth,
+            type: '',
+            value: null,
+            children: [],
+            keyCount: 0,
+            length: 0,
+            objCount: 0
+        };
+
+        if (Array.isArray(value)) {
+            node.type = 'array';
+            node.length = value.length;
+            node.children = value.map((item, i) => this.buildTree(item, String(i), depth + 1));
+            node.objCount = node.children.filter(c => c.type === 'object').length;
+        } else if (value !== null && typeof value === 'object') {
+            node.type = 'object';
+            const keys = Object.keys(value);
+            node.keyCount = keys.length;
+            node.children = keys.map(k => this.buildTree(value[k], k, depth + 1));
+        } else {
+            node.type = typeof value; // string | number | boolean | null
+            node.value = value;
+        }
+
+        return node;
+    },
+
+    // 聚合统计：最大层级 / 各层直接子 key 数 / 数组数与对象数
+    statsSummary(root) {
+        const levelKeys = {};      // depth -> 该层直接子 key 数累加
+        let maxDepth = 0;
+        let arrayCount = 0;
+        let totalElements = 0;
+        let totalObj = 0;
+
+        const walk = (node) => {
+            if (node.depth > maxDepth) maxDepth = node.depth;
+            if (node.type === 'object') {
+                levelKeys[node.depth] = (levelKeys[node.depth] || 0) + node.keyCount;
+            }
+            if (node.type === 'array') {
+                arrayCount++;
+                totalElements += node.length;
+                totalObj += node.objCount;
+            }
+            node.children.forEach(walk);
+        };
+        walk(root);
+
+        const levelBreakdown = [];
+        for (let d = 0; d <= maxDepth; d++) {
+            levelBreakdown.push(`L${d + 1}:${levelKeys[d] || 0}`);
+        }
+        // 去掉末尾无 key 的冗余层级（纯数组/叶子层），至少保留一级
+        while (levelBreakdown.length > 1 && levelBreakdown[levelBreakdown.length - 1].endsWith(':0')) {
+            levelBreakdown.pop();
+        }
+
+        const totalKeys = Object.values(levelKeys).reduce((a, b) => a + b, 0);
+
+        return {
+            maxDepth,
+            arrayCount,
+            totalElements,
+            totalObj,
+            totalKeys,
+            levelBreakdown
+        };
+    },
+
     // 获取功能按钮配置
     getButtons() {
         return [

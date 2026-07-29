@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v1.6.0-blue" alt="version">
+  <img src="https://img.shields.io/badge/version-v1.6.2-blue" alt="version">
   <img src="https://img.shields.io/badge/manifest-v3-green" alt="manifest v3">
   <img src="https://img.shields.io/badge/dependencies-0-orange" alt="zero dependencies">
   <img src="https://img.shields.io/badge/license-MIT-brightgreen" alt="license">
@@ -34,13 +34,18 @@
 > 默认顺序：JSON → SQL → 时间戳 → 文本比对 → 编解码 → Cron
 
 ### 📋 JSON
-- JSON格式化/美化
+- JSON格式化/美化（**树形结构视图**）
 - JSON压缩/最小化
 - JSON转义/去转义
 - JSON Key排序
 - JSON格式验证
 - 递归提取指定Key
 - 递归排除指定Key
+- **结构统计（树形视图）**：
+  - 点击「格式化」自动渲染可折叠树，数组节点标注 `[N]`（N=数组长度），对象节点标注 `{K}`（直接子 key 数）
+  - 顶部统计栏：总层数、各层 key 数（L1/L2/L3…）、数组数与元素/对象数
+  - 「▾ 展开 / ▸ 折叠」按钮控制全部节点展开或折叠（默认展开前 3 层）
+  - 复制/保存输出**纯格式化 JSON**，不含任何统计标签
 
 ### 🗄️ SQL
 - **SQL美化（格式化）**：智能识别 DML / DDL 语句，自动选择最佳排版风格
@@ -212,6 +217,18 @@ devtools-extension/
 - 源码完全开放，可自行审计
 
 ## 📝 更新日志
+
+### v1.6.2
+- 🔧 **JSON 树形视图微调**：
+  - 数组节点标注由 `[N · M obj]` 简化为 `[N]`（仅数组长度）
+  - 默认展开层级由 2 层提升至 3 层
+
+### v1.6.1
+- ✨ **JSON 树形结构视图**：点击「格式化」自动渲染可折叠树，直观查看层级与数组结构
+  - 数组节点标注 `[N]`（N=数组长度），对象节点标注 `{K}`（直接子 key 数）
+  - 顶部统计栏：总层数、各层 key 数（L1/L2/L3…）、数组数与元素/对象数
+  - 「▾ 展开 / ▸ 折叠」按钮控制全部节点展开或折叠（默认展开前 3 层）
+  - 复制/保存输出纯格式化 JSON，不含统计标签，与其他 JSON 功能（压缩/转义/排序/提取/排除）无缝切换
 
 ### v1.6.0
 - ✨ **新增文本比对功能**：基于 Myers O(ND) 算法的零依赖 diff 实现

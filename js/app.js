@@ -15,6 +15,9 @@ class DevToolBoxApp {
         this.diffType = null;       // 'line' | 'word' | 'char'
         this.diffOriginalText = '';
         this.diffModifiedText = '';
+        // JSON 树形视图状态
+        this.jsonViewMode = 'text'; // 'text' | 'tree'
+        this.currentJsonText = null; // 纯格式化 JSON（用于复制/保存）
         this.init();
     }
 
@@ -67,6 +70,11 @@ class DevToolBoxApp {
         this.outputPanelTitle = document.getElementById('output-panel-title');
         this.diffStatsWrapper = document.getElementById('diff-stats-wrapper');
         this.btnDiffReset = document.getElementById('btn-diff-reset');
+
+        // JSON 树形视图元素
+        this.jsonTreeRoot = document.getElementById('json-tree-root');
+        this.btnJsonExpand = document.getElementById('btn-json-expand');
+        this.btnJsonCollapse = document.getElementById('btn-json-collapse');
     }
 
     // 动态渲染功能区（卡片式布局 + top-4 高频标记）
@@ -226,7 +234,9 @@ class DevToolBoxApp {
         });
         document.getElementById('btn-output-save').addEventListener('click', () => {
             let content;
-            if (this.diffMode === 'diff-edit') {
+            if (this.jsonViewMode === 'tree' && this.currentJsonText) {
+                content = this.currentJsonText;
+            } else if (this.diffMode === 'diff-edit') {
                 content = this.outputTextarea.value;
             } else {
                 content = this.outputCode.textContent;
@@ -234,7 +244,13 @@ class DevToolBoxApp {
             this.saveContentToStorage(content, '结果内容');
         });
         document.getElementById('btn-output-clear').addEventListener('click', () => {
-            if (this.diffMode === 'diff-edit') {
+            if (this.jsonViewMode === 'tree') {
+                this.exitJsonTreeMode();
+                this.outputCode.textContent = '';
+                this.outputLineNumbers.textContent = '1';
+                this.setStatus('已清空结果');
+                this.showToast('已清空结果', 'success');
+            } else if (this.diffMode === 'diff-edit') {
                 this.outputTextarea.value = '';
                 this.updateOutputLineNumbers();
                 this.updateDiffEditStatus();
@@ -296,6 +312,24 @@ class DevToolBoxApp {
         // diff 重新编辑按钮
         this.btnDiffReset.addEventListener('click', () => {
             this.exitDiffToEdit();
+        });
+
+        // JSON 树形视图：全部展开 / 全部折叠
+        this.btnJsonExpand.addEventListener('click', () => {
+            this.expandAllJson();
+        });
+        this.btnJsonCollapse.addEventListener('click', () => {
+            this.collapseAllJson();
+        });
+
+        // JSON 树形视图：点击节点行折叠/展开
+        this.jsonTreeRoot.addEventListener('click', (e) => {
+            const row = e.target.closest('.json-node-row');
+            if (!row) return;
+            const node = row.parentElement;
+            if (!node || !node.classList.contains('json-node')) return;
+            node.classList.toggle('collapsed');
+            this.syncToggleChars();
         });
 
         // Tab键插入空格
@@ -488,6 +522,11 @@ class DevToolBoxApp {
             this.exitDiffMode();
         }
 
+        // 若在 JSON 树形视图，先退出恢复普通输出
+        if (this.jsonViewMode === 'tree') {
+            this.exitJsonTreeMode();
+        }
+
         const input = this.inputArea.value;
         
         try {
@@ -496,8 +535,8 @@ class DevToolBoxApp {
             switch (action) {
                 // JSON工具
                 case 'json-format':
-                    result = JsonTools.format(input);
-                    break;
+                    this.handleJsonFormat(input);
+                    return;
                 case 'json-minify':
                     result = JsonTools.minify(input);
                     break;
@@ -657,7 +696,9 @@ class DevToolBoxApp {
     // 复制结果
     copyResult() {
         let text = '';
-        if (this.diffMode === 'diff-edit') {
+        if (this.jsonViewMode === 'tree' && this.currentJsonText) {
+            text = this.currentJsonText;
+        } else if (this.diffMode === 'diff-edit') {
             text = this.outputTextarea.value;
         } else if (this.diffMode === 'diff-result') {
             text = this.outputCode.textContent;
@@ -793,6 +834,128 @@ class DevToolBoxApp {
         }
     }
 
+    // ========== JSON 树形视图 ==========
+
+    // JSON 格式化 → 树形视图
+    handleJsonFormat(input) {
+        let parsed;
+        try {
+            parsed = JSON.parse(input);
+        } catch (e) {
+            this.showError(`JSON解析错误: ${e.message}`);
+            return;
+        }
+        this.jsonViewMode = 'tree';
+        this.currentJsonText = JSON.stringify(parsed, null, 2);
+        const root = JsonTools.buildTree(parsed);
+        this.renderJsonTree(root);
+        this.setStatus('格式化成功 ✓', 'success');
+    }
+
+    // 渲染 JSON 树
+    renderJsonTree(root) {
+        // 隐藏文本/pre 输出，显示树
+        this.outputArea.style.display = 'none';
+        this.outputTextarea.style.display = 'none';
+        this.outputLineNumbers.style.display = 'none';
+        this.jsonTreeRoot.style.display = '';
+        this.btnJsonExpand.style.display = '';
+        this.btnJsonCollapse.style.display = '';
+        this.outputPanelTitle.textContent = '🌳 JSON 结构';
+
+        const summary = JsonTools.statsSummary(root);
+        const statsHtml =
+            `<div class="json-tree-stats">共 <span class="jts-num">${summary.maxDepth + 1}</span> 层 · ` +
+            `key <span class="jts-num">${summary.totalKeys}</span> (${summary.levelBreakdown.join(' / ')}) · ` +
+            `数组 <span class="jts-num">${summary.arrayCount}</span> (<span class="jts-num">${summary.totalElements}</span> 元素 / <span class="jts-num">${summary.totalObj}</span> 对象)</div>`;
+
+        this.jsonTreeRoot.innerHTML = statsHtml + `<div class="json-tree-body">${this.renderJsonNode(root)}</div>`;
+    }
+
+    // 递归渲染树节点为 HTML
+    renderJsonNode(node) {
+        const indent = node.depth * 18;
+        const isCollapsible = node.type === 'object' || node.type === 'array';
+        const isCollapsed = isCollapsible && node.depth >= 3;
+        const keyHtml = node.key !== null
+            ? `<span class="json-tree-key">${this.escapeHtml(node.key)}</span>: `
+            : '';
+        const braceOpen = node.type === 'array' ? '[' : '{';
+        const braceClose = node.type === 'array' ? ']' : '}';
+        const badge = isCollapsible
+            ? `<span class="json-badge">${node.type === 'array'
+                ? '[' + node.length + ']'
+                : '{' + node.keyCount + '}'}</span>`
+            : '';
+
+        if (!isCollapsible) {
+            return `<div class="json-node-row leaf" style="padding-left:${indent}px">` +
+                `<span class="json-toggle"></span>${keyHtml}` +
+                `<span class="json-${node.type}">${this.formatScalar(node.value, node.type)}</span></div>`;
+        }
+
+        const childrenHtml = node.children.map(c => this.renderJsonNode(c)).join('');
+        const toggleChar = isCollapsed ? '▸' : '▾';
+        return `<div class="json-node${isCollapsed ? ' collapsed' : ''}" data-depth="${node.depth}">` +
+            `<div class="json-node-row" style="padding-left:${indent}px">` +
+            `<span class="json-toggle">${toggleChar}</span>${keyHtml}${badge} ` +
+            `<span class="json-brace">${braceOpen}</span></div>` +
+            `<div class="json-children">${childrenHtml}` +
+            `<div class="json-node-row" style="padding-left:${indent}px"><span class="json-brace">${braceClose}</span></div>` +
+            `</div></div>`;
+    }
+
+    // 标量值格式化（带引号/转义）
+    formatScalar(value, type) {
+        if (type === 'string') return '"' + this.escapeHtml(value) + '"';
+        if (type === 'null') return 'null';
+        return this.escapeHtml(String(value));
+    }
+
+    // HTML 转义
+    escapeHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    // 全部展开
+    expandAllJson() {
+        this.jsonTreeRoot.querySelectorAll('.json-node').forEach(n => n.classList.remove('collapsed'));
+        this.syncToggleChars();
+    }
+
+    // 全部折叠（保留根节点展开）
+    collapseAllJson() {
+        this.jsonTreeRoot.querySelectorAll('.json-node').forEach(n => {
+            if (parseInt(n.dataset.depth || '0', 10) >= 1) n.classList.add('collapsed');
+        });
+        this.syncToggleChars();
+    }
+
+    // 同步折叠三角字符
+    syncToggleChars() {
+        this.jsonTreeRoot.querySelectorAll('.json-node').forEach(n => {
+            const tg = n.querySelector(':scope > .json-node-row > .json-toggle');
+            if (tg) tg.textContent = n.classList.contains('collapsed') ? '▸' : '▾';
+        });
+    }
+
+    // 退出 JSON 树形视图，恢复普通输出
+    exitJsonTreeMode() {
+        this.jsonViewMode = 'text';
+        this.currentJsonText = null;
+        this.jsonTreeRoot.style.display = 'none';
+        this.jsonTreeRoot.innerHTML = '';
+        this.btnJsonExpand.style.display = 'none';
+        this.btnJsonCollapse.style.display = 'none';
+        this.outputArea.style.display = '';
+        this.outputTextarea.style.display = 'none';
+        this.outputLineNumbers.style.display = '';
+        this.outputPanelTitle.textContent = '✅ 结果';
+    }
+
     // ========== 文本比对（Diff）模式 ==========
 
     _diffTypeLabel(type) {
@@ -801,6 +964,11 @@ class DevToolBoxApp {
 
     // diff 比对主入口
     executeDiffCompare(type) {
+        // 若在 JSON 树形视图，先退出恢复普通输出
+        if (this.jsonViewMode === 'tree') {
+            this.exitJsonTreeMode();
+        }
+
         if (this.diffMode === 'normal') {
             // 首次点击：进入 diff 编辑模式
             this.enterDiffEditMode(type);

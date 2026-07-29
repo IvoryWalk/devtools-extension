@@ -1206,3 +1206,106 @@ body {
 .panel-title.diff-mode {
     color: var(--accent);
 }
+
+/* --- 20. JSON 树形视图 --- */
+
+.json-tree {
+    flex: 1;
+    overflow: auto;
+    padding: var(--space-lg);
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    font-size: var(--fs-lg);
+    line-height: 1.6;
+    min-width: 0;
+}
+
+/* 顶部统计摘要栏 */
+.json-tree-stats {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px var(--space-md);
+    margin-bottom: var(--space-sm);
+    font-size: var(--fs-sm);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow-x: auto;
+}
+
+.json-tree-stats .jts-num {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.json-tree-stats .jts-key {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.json-tree-body {
+    white-space: pre;
+}
+
+/* 节点行 */
+.json-node-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    white-space: pre;
+}
+
+.json-node > .json-node-row {
+    cursor: pointer;
+}
+
+.json-node > .json-node-row:hover {
+    background: var(--accent-soft);
+}
+
+.json-toggle {
+    display: inline-block;
+    width: 12px;
+    color: var(--text-muted);
+    user-select: none;
+    flex-shrink: 0;
+    text-align: center;
+}
+
+.json-tree-key {
+    color: #89b4fa;
+}
+
+[data-theme="light"] .json-tree-key {
+    color: #0066cc;
+}
+
+.json-badge {
+    color: #cba6f7;
+    font-weight: 600;
+}
+
+[data-theme="light"] .json-badge {
+    color: #8e44ad;
+}
+
+.json-brace {
+    color: var(--text-secondary);
+}
+
+/* 叶子值（复用语法高亮配色） */
+.json-node-row.leaf .json-string { color: #a6e3a1; }
+.json-node-row.leaf .json-number  { color: #fab387; }
+.json-node-row.leaf .json-boolean { color: #f38ba8; }
+.json-node-row.leaf .json-null    { color: #cba6f7; font-style: italic; }
+
+/* 折叠状态 */
+.json-children {
+    /* 默认展开显示 */
+}
+
+.json-node.collapsed > .json-children {
+    display: none;
+}
